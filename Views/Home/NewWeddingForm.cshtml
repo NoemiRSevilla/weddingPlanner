@@ -1,0 +1,41 @@
+@using weddingPlanner.Models
+@model Wedding
+
+<link rel="stylesheet" href="~/css/site.css"/>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-dark">
+    <h1 class="white mr-auto text col">Registration</h1>
+    <a href="/logout" class="btn-btn-primary">Logout</a>
+</nav>
+    <div class="container box">
+        <div class='row'>
+            <div class="col">
+                <form asp-action="WeddingSubmit" asp-controller="Home" method="post">
+                    <input type="hidden" asp-for="UserId" value="@ViewBag.creator.UserId">
+                    <div class="form-group">
+                        <span class="color: red" asp-validation-for="WOne"></span>
+                        <label asp-for="WOne">Wedder One: </label>
+                        <input asp-for="WOne" class="form-control" value=@TempData["WOne"]>
+                    </div>
+                    <div class="form-group">
+                        <span class="color: red" asp-validation-for="WTwo"></span>
+                        <label asp-for="WTwo">Wedder Two: </label>
+                        <input asp-for="WTwo" class="form-control" value=@TempData["WTwo"]>
+                    </div>
+                    <div class="form-group">
+                        <span class="color: red" asp-validation-for="When"></span>
+                        <label asp-for="When">When: </label>
+                        <input asp-for="When" type="date" class="form-control" value=@TempData["When"]>
+                    </div>
+                    <div class="form-group">
+                        <span class="color: red" asp-validation-for="Address"></span>
+                        <label asp-for="Address">Address: </label>
+                        <input asp-for="Address" class="form-control" value=@TempData["Address"]>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit!</button>
+                </form>
+            </div>
+        </div>
+    <div>
+</body>

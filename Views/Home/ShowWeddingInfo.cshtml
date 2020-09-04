@@ -1,0 +1,19 @@
+@using weddingPlanner.Models
+@model List<User>
+<link rel="stylesheet" href="~/css/site.css"/>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-dark">
+    <h1 class="white col"> @ViewBag.W.WOne and @ViewBag.W.WTwo's Wedding</h1>
+    <a href="/dashboard" class="col-1">Dashboard</a>
+    <a href="/logout" class="col-1">Logout</a>
+</nav>
+
+<h3>Date: @ViewBag.W.When</h3>
+<h3>Guests:</h3>
+@foreach (var g in ViewBag.W.RSVPs)
+{
+    <h6>@g.Guest.FirstName @g.Guest.LastName</h6>
+}
+
+</body>

@@ -1,0 +1,47 @@
+@using weddingPlanner.Models
+@model List<Wedding>
+
+<link rel="stylesheet" href="~/css/site.css"/>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-dark">
+    <h1 class="white mr-auto text col">Registration</h1>
+    <a href="/logout" class="btn-btn-primary">Log Out</a>
+</nav>
+<table class="table table-dark">
+    <thead>
+    <tr>
+        <th scope="col">Wedding</th>
+        <th scope="col">Date</th>
+        <th scope="col">Guest</th>
+        <th scope="col">Action</th>
+    </tr>
+    </thead>
+    <tbody>
+        @foreach(var w in @Model)
+        {
+            <tr>
+                <td><a href="wedding/@w.WeddingId"> @w.WOne and @w.WTwo</a></td>
+                <td>@w.When</td>
+                <td>@w.RSVPs.Count()</td>
+                <td>
+                    @if (w.RSVPs.Any(r => r.UserId == ViewBag.current.UserId))
+                    {
+                        <a asp-action="unRSVP" asp-controller="Home" asp-route-WeddingId="@w.WeddingId" asp-route-UserId="@ViewBag.current.UserId">un-RSVP</a>
+                    }
+                    else if (ViewBag.current.UserId == w.UserId)
+                    {
+                        <a asp-action="DeleteWedding" asp-controller="Home" asp-route-WeddingId="@w.WeddingId">Delete</a>
+                    }
+                    else
+                    {
+                        <a asp-action="GuestRSVP" asp-controller="Home" asp-route-WeddingId ="@w.WeddingId" asp-route-UserId="@ViewBag.current.UserId">RSVP</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a href="newweddingform" class="btn btn-primary">Add New Wedding</a>
+</body>

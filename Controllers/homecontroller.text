@@ -1,0 +1,214 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
+using weddingPlanner.Models;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using weddingPlanner;
+
+// Other using statements
+namespace HomeController.Controllers
+{
+    public class HomeController : Controller
+    {
+        private MyContext dbContext;
+
+        // here we can "inject" our context service into the constructor
+        public HomeController(MyContext context)
+        {
+            dbContext = context;
+        }
+
+        [HttpGet]
+        [Route("")]
+        public IActionResult Index()
+        {
+            string UserInSession = HttpContext.Session.GetString("Email");
+            if (UserInSession != null)
+            {
+                return RedirectToAction("Dashboard");
+            }
+            else
+            {
+                return View();
+            }
+        }
+
+        [HttpPost("submit")]
+        public IActionResult Submit(IndexViewModel modelData)
+        {
+            User submittedUser = modelData.newUser;
+            if (ModelState.IsValid)
+            {
+                if (dbContext.users.Any(u => u.Email == modelData.newUser.Email))
+                {
+                    // Manually add a ModelState error to the Email field, with provided
+                    // error message
+                    ModelState.AddModelError("Email", "Email already in use!");
+                    // You may consider returning to the View at this point
+                    return View("Index");
+                }
+                else
+                {
+                    PasswordHasher<User> Hasher = new PasswordHasher<User>();
+                    modelData.newUser.Password = Hasher.HashPassword(modelData.newUser, modelData.newUser.Password);
+                    dbContext.Add(modelData.newUser);
+                    dbContext.SaveChanges();
+                    HttpContext.Session.SetString("Email", modelData.newUser.Email);
+                    return Redirect($"/dashboard");
+                }
+            }
+            else
+            {
+                TempData["First Name"] = modelData.newUser.FirstName;
+                TempData["Last Name"] = modelData.newUser.LastName;
+                TempData["Email"] = modelData.newUser.Email;
+                return View("Index");
+            }
+        }
+
+        [HttpPost("submitlogin")]
+        public IActionResult submitlogin(IndexViewModel modelData)
+        {
+            Console.WriteLine("***********");
+            LoginUser submittedUser = modelData.user;
+            if (ModelState.IsValid)
+            {
+                // If inital ModelState is valid, query for a user with provided email
+                var userInDb = dbContext.users.FirstOrDefault(u => u.Email == modelData.user.LoginEmail);
+                // If no user exists with provided email
+                if (userInDb == null)
+                {
+                    // Add an error to ModelState and return to View!
+                    ModelState.AddModelError("LoginEmail", "You could not be logged in");
+                    return View("Index");
+                }
+
+                // Initialize hasher object
+                var hasher = new PasswordHasher<LoginUser>();
+
+                // verify provided password against hash stored in dbcopy
+                var result = hasher.VerifyHashedPassword(modelData.user, userInDb.Password, modelData.user.LoginPassword);
+
+                // result can be compared to 0 for failure
+                if (result == 0)
+                {
+                    ModelState.AddModelError("LoginEmail", "You could not be logged in");
+                    return View("Index");
+                }
+                HttpContext.Session.SetString("Email", modelData.user.LoginEmail);
+                return Redirect("/dashboard");
+            }
+            else
+            {
+                return View("Index");
+            }
+        }
+
+        [HttpGet("logout")]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return View("Index");
+        }
+
+        [HttpGet("dashboard")]
+        public IActionResult Dashboard()
+        {
+            string UserInSession = HttpContext.Session.GetString("Email");
+            if (UserInSession != null)
+            {
+
+                List<Wedding> weddingAndAssocations = dbContext.weddings
+                .Include(a => a.RSVPs)
+                .ThenInclude(g => g.Guests)
+                .ToList();
+                return View(weddingAndAssocations);
+            }
+            else
+            {
+                return RedirectToAction("Logout");
+            }
+        }
+
+        [HttpPost("wedding/submit")]
+        public IActionResult WeddingSubmit(Wedding newWedding)
+        {
+            if (ModelState.IsValid)
+            {
+                dbContext.Add(newWedding);
+                dbContext.SaveChanges();
+                return Redirect($"/wedding/{newWedding.WeddingId}");
+            }
+            else
+            {
+                TempData["WTWo"] = newWedding.WTwo;
+                TempData["When"] = newWedding.When;
+                TempData["Address"] = newWedding.Address;
+                return View("NewWeddingForm");
+            }
+        }
+
+        [HttpGet("newweddingform")]
+        public IActionResult NewWeddingForm()
+        {
+            string UserInSession = HttpContext.Session.GetString("Email");
+
+            User retrievedUser = dbContext.users.FirstOrDefault(c => c.Email == UserInSession);
+
+            ViewBag.creator = retrievedUser;
+
+            return View();
+        }
+
+        [HttpGet("wedding/{WeddingId}")]
+        public IActionResult ShowWeddingInfo(int WeddingId)
+        {
+            Wedding WeddingInfo = dbContext.weddings
+            .Include(a => a.WeddingPlanner)
+            .ThenInclude(g => g.Guests)
+            .FirstOrDefault(u => u.WeddingId == WeddingId);
+
+            ViewBag.W = WeddingInfo;
+            return View();
+        }
+
+        [HttpGet("delete")]
+        public IActionResult DeleteWedding(int WeddingId)
+        {
+            Wedding WeddingInfo = dbContext.weddings.FirstOrDefault(u => u.WeddingId == WeddingId);
+            dbContext.weddings.Remove(WeddingInfo);
+            dbContext.SaveChanges();
+            return RedirectToAction("Dashboard");
+        }
+
+        [HttpPost("wedding/{WeddingId}/addguest")]
+        public IActionResult GuestRSVP(Wedding theWedding, int WeddingId, int UserId)
+        {
+
+            RSVP newGuest = new RSVP();
+            newGuest.UserId = UserId;
+            newGuest.WeddingId = WeddingId;
+            dbContext.RSVPs.Add(newGuest);
+            dbContext.SaveChanges();
+            return Redirect($"/wedding/{theWedding.WeddingId}");
+        }
+
+        [HttpPost("guest/{UserId}/remove")]
+        public IActionResult unRSVP(Wedding theWedding, int WeddingId, int UserId)
+        {
+            User rsvpdGuest = dbContext.users
+            .Include(a => a.AttendWeddings)
+            .ThenInclude(g => g.Weddings)
+            .FirstOrDefault(x => x.UserId == UserId);
+            dbContext.users.Remove(rsvpdGuest);
+            dbContext.SaveChanges();
+
+            return Redirect($"/wedding/{theWedding.WeddingId}");
+        }
+    }
+}
